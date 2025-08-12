@@ -159,17 +159,17 @@ async def auto_rename_channel(change_event):
         price_str = f"{change_event.new_price:.2f}"
         if '.' in price_str:
             dollars, cents = price_str.split('.')
-            new_channel_name = f"oil-price💲{dollars}-{cents}{direction_emoji}"
+            new_channel_name = f"oil-price {direction_emoji}💲{dollars}-{cents}"
         else:
-            new_channel_name = f"oil-price💲{price_str}{direction_emoji}"
+            new_channel_name = f"oil-price {direction_emoji}💲{price_str}"
         
         # Ensure channel name is within Discord's limits (100 characters)
         if len(new_channel_name) > 100:
             if '.' in price_str:
                 dollars, cents = price_str.split('.')
-                new_channel_name = f"oil💲{dollars}-{cents}{direction_emoji}"
+                new_channel_name = f"oil {direction_emoji}💲{dollars}-{cents}"
             else:
-                new_channel_name = f"oil💲{price_str}{direction_emoji}"
+                new_channel_name = f"oil {direction_emoji}💲{price_str}"
         
         # Rename the channel
         await target_channel.edit(name=new_channel_name)
