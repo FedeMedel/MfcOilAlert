@@ -20,7 +20,8 @@ logger = logging.getLogger(__name__)
 class OilPriceHTTPClient:
     """HTTP client for oil price endpoint with content change detection"""
     
-    def __init__(self, base_url: str = "https://play.myfly.club/oil-prices"):
+    def __init__(self, base_url: str = "https://play.myfly.club/oil-prices", 
+                 base_polling_interval: int = 300):
         self.base_url = base_url
         self.session = self._create_session()
         self.last_content_hash: Optional[str] = None
@@ -30,9 +31,9 @@ class OilPriceHTTPClient:
         self.consecutive_no_changes = 0
         self.max_consecutive_no_changes = 3
         
-        # Smart polling configuration
-        self.base_polling_interval = 300  # 5 minutes
-        self.relaxed_polling_interval = 900  # 15 minutes
+        # Smart polling configuration - now uses config value
+        self.base_polling_interval = base_polling_interval
+        self.relaxed_polling_interval = base_polling_interval * 3  # 3x base interval for relaxed mode
         self.current_polling_interval = self.base_polling_interval
     
     def _create_session(self) -> requests.Session:
@@ -224,9 +225,10 @@ class OilPriceHTTPClient:
             logger.info("HTTP session closed")
 
 
-def create_http_client(base_url: str = "https://play.myfly.club/oil-prices") -> OilPriceHTTPClient:
+def create_http_client(base_url: str = "https://play.myfly.club/oil-prices",
+                       base_polling_interval: int = 300) -> OilPriceHTTPClient:
     """Factory function to create a new HTTP client instance"""
-    return OilPriceHTTPClient(base_url)
+    return OilPriceHTTPClient(base_url, base_polling_interval)
 
 
 # Example usage and testing

@@ -50,7 +50,7 @@ async def on_ready():
     
     # Initialize price monitor
     global price_monitor
-    price_monitor = create_monitor()
+    price_monitor = create_monitor(polling_interval=Config.POLLING_INTERVAL)
     
     # Log guild information
     for guild in bot.guilds:
@@ -111,7 +111,7 @@ async def check_price_updates(ctx):
             
             # Auto-rename channel if configured
             if Config.DISCORD_CHANNEL_ID:
-                await auto_rename_channel(change_event.new_price)
+                await auto_rename_channel(change_event)
         else:
             # Send current price info using unified format
             current_price = price_monitor.get_current_price()
@@ -128,8 +128,8 @@ async def check_price_updates(ctx):
 
 
 
-async def auto_rename_channel(new_price: float):
-    """Automatically rename the configured channel with the new oil price"""
+async def auto_rename_channel(change_event):
+    """Automatically rename the configured channel with the new oil price and direction indicator"""
     if not Config.DISCORD_CHANNEL_ID:
         return
     
@@ -141,21 +141,35 @@ async def auto_rename_channel(new_price: float):
             logger.error(f"Could not find channel with ID {channel_id} for auto-rename")
             return
         
-        # Create new channel name with 💲 emoji and dash separator
-        price_str = f"{new_price:.2f}"
+        # Determine direction emoji based on price change
+        if change_event.event_type == 'initial':
+            # Initial price - no direction indicator
+            direction_emoji = ""
+        elif change_event.price_change > 0:
+            # Price went up
+            direction_emoji = "📈"
+        elif change_event.price_change < 0:
+            # Price went down
+            direction_emoji = "📉"
+        else:
+            # No change
+            direction_emoji = ""
+        
+        # Create new channel name with 💲 emoji, direction indicator, and dash separator
+        price_str = f"{change_event.new_price:.2f}"
         if '.' in price_str:
             dollars, cents = price_str.split('.')
-            new_channel_name = f"oil-price💲{dollars}-{cents}"
+            new_channel_name = f"oil-price💲{dollars}-{cents}{direction_emoji}"
         else:
-            new_channel_name = f"oil-price💲{price_str}"
+            new_channel_name = f"oil-price💲{price_str}{direction_emoji}"
         
         # Ensure channel name is within Discord's limits (100 characters)
         if len(new_channel_name) > 100:
             if '.' in price_str:
                 dollars, cents = price_str.split('.')
-                new_channel_name = f"oil💲{dollars}-{cents}"
+                new_channel_name = f"oil💲{dollars}-{cents}{direction_emoji}"
             else:
-                new_channel_name = f"oil💲{price_str}"
+                new_channel_name = f"oil💲{price_str}{direction_emoji}"
         
         # Rename the channel
         await target_channel.edit(name=new_channel_name)
@@ -201,7 +215,7 @@ async def fetch_and_send_current_price():
             await send_unified_oil_price_message(price_monitor.get_current_price(), change_event, is_update=True)
             
             # Auto-rename channel if configured
-            await auto_rename_channel(change_event.new_price)
+            await auto_rename_channel(change_event)
             
             logger.info(f"Initial price update sent: ${change_event.new_price:.2f}")
         else:
@@ -293,7 +307,7 @@ async def background_monitoring():
                     logger.info(f"Price update detected in background: ${change_event.new_price:.2f}")
                     
                     # Auto-rename channel
-                    await auto_rename_channel(change_event.new_price)
+                    await auto_rename_channel(change_event)
                     
                     # Send notification to configured channel
                     if Config.DISCORD_CHANNEL_ID:
@@ -306,7 +320,7 @@ async def background_monitoring():
                 if wait_time > 0:
                     await asyncio.sleep(wait_time)
                 else:
-                    await asyncio.sleep(300)  # Default 5 minutes
+                    await asyncio.sleep(Config.POLLING_INTERVAL)  # Use config value instead of hardcoded
                     
             except asyncio.CancelledError:
                 break

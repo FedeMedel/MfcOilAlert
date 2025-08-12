@@ -36,9 +36,10 @@ class OilPriceMonitor:
     def __init__(self, 
                  base_url: str = "https://play.myfly.club/oil-prices",
                  storage_file: str = "price_history.json",
-                 change_threshold: float = 0.01):  # 1 cent threshold
+                 change_threshold: float = 0.01,  # 1 cent threshold
+                 polling_interval: int = 300):  # Default 5 minutes
         self.parser = OilPriceParser()
-        self.http_client = OilPriceHTTPClient(base_url)
+        self.http_client = OilPriceHTTPClient(base_url, polling_interval)
         self.storage_file = storage_file
         self.change_threshold = change_threshold
         
@@ -309,9 +310,10 @@ class OilPriceMonitor:
 
 
 def create_monitor(base_url: str = "https://play.myfly.club/oil-prices",
-                  storage_file: str = "price_history.json") -> OilPriceMonitor:
+                  storage_file: str = "price_history.json",
+                  polling_interval: int = 300) -> OilPriceMonitor:
     """Factory function to create a new monitor instance"""
-    return OilPriceMonitor(base_url, storage_file)
+    return OilPriceMonitor(base_url, storage_file, polling_interval=polling_interval)
 
 
 # Example usage and testing
