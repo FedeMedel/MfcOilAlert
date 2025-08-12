@@ -79,7 +79,7 @@ pip install -r requirements.txt
    DISCORD_TOKEN=your_bot_token_here
    DISCORD_CHANNEL_ID=your_channel_id_here
    OIL_PRICE_URL=https://play.myfly.club/oil-prices
-   POLLING_INTERVAL=300
+   POLLING_INTERVAL=120
    BOT_PREFIX=!
    BOT_STATUS=Monitoring Oil Prices
    ```
@@ -124,7 +124,7 @@ OilPriceAlert/
 | `DISCORD_TOKEN` | Your Discord bot token | Required |
 | `DISCORD_CHANNEL_ID` | Target channel ID | Required |
 | `OIL_PRICE_URL` | Oil price website URL | `https://play.myfly.club/oil-prices` |
-| `POLLING_INTERVAL` | Price check interval (seconds) | `180` (3 minutes) |
+| `POLLING_INTERVAL` | Price check interval (seconds) | `120` (2 minutes) |
 | `BOT_PREFIX` | Command prefix | `!` |
 | `BOT_STATUS` | Bot status message | `Monitoring Oil Prices` |
 
