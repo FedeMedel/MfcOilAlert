@@ -125,7 +125,7 @@ OilPriceAlert/
 | `DISCORD_TOKEN` | Your Discord bot token | Required |
 | `DISCORD_CHANNEL_ID` | Target channel ID | Required |
 | `OIL_PRICE_URL` | Oil price website URL | `https://play.myfly.club/oil-prices` |
-| `POLLING_INTERVAL` | Price check interval (seconds) | `300` (5 minutes) |
+| `POLLING_INTERVAL` | Price check interval (seconds) | `180` (3 minutes) |
 | `BOT_PREFIX` | Command prefix | `!` |
 | `BOT_STATUS` | Bot status message | `Monitoring Oil Prices` |
 
