@@ -100,8 +100,7 @@ python src/bot.py
 
 Once the bot is running, you can test it with these commands:
 
-- `!ping` - Check bot responsiveness
-- `!status` - View bot status and connection info
+- `!!check` - Check bot responsiveness
 
 ## Project Structure
 
