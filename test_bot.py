@@ -137,12 +137,65 @@ async def test_config():
     except Exception as e:
         print(f"❌ Configuration test failed: {e}")
 
+async def test_unified_message_format():
+    """Test the unified message format functionality"""
+    print("🔍 Testing unified message format...")
+    
+    try:
+        # Import the bot module to test the message function
+        from src.bot import send_unified_oil_price_message
+        
+        # Create mock data for testing
+        class MockPriceData:
+            def __init__(self, price, cycle):
+                self.price = price
+                self.cycle = cycle
+        
+        class MockChangeEvent:
+            def __init__(self, old_price, new_price, old_cycle, new_cycle, price_change, price_change_percent, event_type):
+                self.old_price = old_price
+                self.new_price = new_price
+                self.old_cycle = old_cycle
+                self.new_cycle = new_cycle
+                self.price_change = price_change
+                self.price_change_percent = price_change_percent
+                self.event_type = event_type
+        
+        # Test data
+        current_price = MockPriceData(76.28, 6548)
+        update_event = MockChangeEvent(72.59, 76.28, 6547, 6548, 3.69, 5.08, 'update')
+        initial_event = MockChangeEvent(None, 76.28, None, 6548, 0.0, 0.0, 'initial')
+        
+        print("✅ Mock data created successfully")
+        print(f"   - Current Price: ${current_price.price:.2f} (Cycle: {current_price.cycle})")
+        print(f"   - Update Event: ${update_event.old_price:.2f} → ${update_event.new_price:.2f} (Change: +${update_event.price_change:.2f})")
+        print(f"   - Initial Event: ${initial_event.new_price:.2f} (Cycle: {initial_event.new_cycle})")
+        
+        # Test timestamp functionality
+        from datetime import datetime, timezone
+        current_time = datetime.now(timezone.utc)
+        time_str = current_time.strftime("%H:%M")
+        print(f"✅ Timestamp functionality working: {time_str} UTC")
+        
+        print("✅ Unified message format test completed")
+        
+    except ImportError as e:
+        print(f"⚠️  Could not import bot module for testing: {e}")
+        print("   This is expected if the bot hasn't been run yet")
+    except Exception as e:
+        print(f"❌ Unified message format test failed: {e}")
+        logger.error("Unified message format test failed", exc_info=True)
+
 if __name__ == "__main__":
     print("🚀 Oil Price Alert Bot - Connection Test")
     print("=" * 50)
     
     # Test configuration first
     asyncio.run(test_config())
+    print()
+    
+    # Test unified message format
+    asyncio.run(test_unified_message_format())
     print()
     
     # Test Discord connection

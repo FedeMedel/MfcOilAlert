@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import logging
 import asyncio
 import time
+from datetime import datetime, timezone
 
 # Add the parent directory to Python path to import config and utils
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -105,30 +106,19 @@ async def check_price_updates(ctx):
         change_event = price_monitor.check_for_updates()
         
         if change_event:
-            # Create update embed
-            embed = discord.Embed(
-                title="🔄 Oil Price Update Detected!",
-                description="A new oil price has been detected",
-                color=discord.Color.blue()
-            )
-            
-            if change_event.event_type == 'initial':
-                embed.add_field(name="💰 New Price", value=f"${change_event.new_price:.2f}", inline=True)
-                embed.add_field(name="🔄 Cycle", value=f"{change_event.new_cycle}", inline=True)
-                embed.add_field(name="📝 Type", value="Initial Price", inline=True)
-            else:
-                embed.add_field(name="💰 Old Price", value=f"${change_event.old_price:.2f}", inline=True)
-                embed.add_field(name="💰 New Price", value=f"${change_event.new_price:.2f}", inline=True)
-                embed.add_field(name="🔄 Cycle", value=f"{change_event.new_cycle}", inline=True)
-                embed.add_field(name="📊 Change", value=f"${change_event.price_change:+.2f} ({change_event.price_change_percent:+.2f}%)", inline=True)
-            
-            await ctx.send(embed=embed)
+            # Use unified message format for consistency
+            await send_unified_oil_price_message(price_monitor.get_current_price(), change_event, is_update=True)
             
             # Auto-rename channel if configured
             if Config.DISCORD_CHANNEL_ID:
                 await auto_rename_channel(change_event.new_price)
         else:
-            await ctx.send("✅ **No price updates detected.**")
+            # Send current price info using unified format
+            current_price = price_monitor.get_current_price()
+            if current_price:
+                await send_unified_oil_price_message(current_price, is_update=False)
+            else:
+                await ctx.send("✅ **No price updates detected.**")
     
     except Exception as e:
         await ctx.send(f"❌ **Error:** Failed to check for updates: {str(e)}")
@@ -208,7 +198,7 @@ async def fetch_and_send_current_price():
         
         if change_event:
             # Send price update notification
-            await send_price_update_notification(change_event)
+            await send_unified_oil_price_message(price_monitor.get_current_price(), change_event, is_update=True)
             
             # Auto-rename channel if configured
             await auto_rename_channel(change_event.new_price)
@@ -218,14 +208,14 @@ async def fetch_and_send_current_price():
             # If no change event, still send current price info
             current_price = price_monitor.get_current_price()
             if current_price:
-                await send_current_price_info(current_price)
+                await send_unified_oil_price_message(current_price, is_update=False)
                 logger.info(f"Current price info sent: ${current_price.price:.2f}")
         
     except Exception as e:
         logger.error(f"Error fetching and sending current price: {e}")
 
-async def send_current_price_info(current_price):
-    """Send current price information to Discord channel"""
+async def send_unified_oil_price_message(price_data, change_event=None, is_update=False):
+    """Unified function to send oil price information in consistent format"""
     if not Config.DISCORD_CHANNEL_ID:
         return
     
@@ -237,30 +227,40 @@ async def send_current_price_info(current_price):
             logger.error(f"Could not find channel with ID {channel_id}")
             return
         
-        # Create price info embed
+        # Create unified embed with consistent "🔄 Oil Price Updated!" format
         embed = discord.Embed(
-            title="🛢️ Current Oil Price",
-            description="Latest oil price information",
+            title="🔄 Oil Price Updated!",
+            description="Automatic price update detected" if is_update else "Current price information",
             color=discord.Color.green()
         )
         
-        embed.add_field(name="💰 Price", value=f"${current_price.price:.2f}", inline=True)
-        embed.add_field(name="🔄 Cycle", value=f"{current_price.cycle}", inline=True)
-        if current_price.timestamp:
-            embed.add_field(name="⏰ Last Updated", value=current_price.timestamp, inline=True)
+        if change_event and change_event.event_type != 'initial':
+            # Update scenario: show old price, new price, cycle, and change
+            embed.add_field(name="💰 Old Price", value=f"${change_event.old_price:.2f}", inline=True)
+            embed.add_field(name="💰 New Price", value=f"${change_event.new_price:.2f}", inline=True)
+            embed.add_field(name="🔄 Cycle", value=f"{change_event.new_cycle}", inline=True)
+            embed.add_field(name="📊 Change", value=f"${change_event.price_change:+.2f} ({change_event.price_change_percent:+.2f}%)", inline=True)
+        elif change_event and change_event.event_type == 'initial':
+            # Initial price scenario
+            embed.add_field(name="💰 New Price", value=f"${change_event.new_price:.2f}", inline=True)
+            embed.add_field(name="🔄 Cycle", value=f"{change_event.new_cycle}", inline=True)
+            embed.add_field(name="📝 Type", value="Initial Price", inline=True)
+        else:
+            # Info scenario: show current price and cycle only
+            embed.add_field(name="💰 Current Price", value=f"${price_data.price:.2f}", inline=True)
+            embed.add_field(name="🔄 Cycle", value=f"{price_data.cycle}", inline=True)
+            embed.add_field(name="📊 Status", value="No price change detected", inline=True)
         
-        # Add price history summary
-        summary = price_monitor.get_price_change_summary()
-        if 'error' not in summary and summary.get('price_stats'):
-            embed.add_field(name="📊 Recent Statistics", value="", inline=False)
-            embed.add_field(name="📈 Average", value=f"${summary['price_stats']['avg_price']:.2f}", inline=True)
-            embed.add_field(name="📉 Range", value=f"${summary['price_stats']['min_price']:.2f} - ${summary['price_stats']['max_price']:.2f}", inline=True)
+        # Add UTC timestamp to all message scenarios
+        current_time = datetime.now(timezone.utc)
+        time_str = current_time.strftime("%H:%M")
+        embed.add_field(name="⏰ Time", value=f"{time_str} UTC", inline=True)
         
         await target_channel.send(embed=embed)
-        logger.info(f"Current price info sent to channel {channel_id}")
+        logger.info(f"Unified oil price message sent to channel {channel_id}")
         
     except Exception as e:
-        logger.error(f"Error sending current price info: {e}")
+        logger.error(f"Error sending unified oil price message: {e}")
 
 def start_monitoring_task():
     """Start the background monitoring task"""
@@ -297,7 +297,7 @@ async def background_monitoring():
                     
                     # Send notification to configured channel
                     if Config.DISCORD_CHANNEL_ID:
-                        await send_price_update_notification(change_event)
+                        await send_unified_oil_price_message(price_monitor.get_current_price(), change_event, is_update=True)
                 
                 # Wait for next check (use monitor's polling interval)
                 next_poll = price_monitor.http_client.get_next_poll_time()
@@ -320,44 +320,6 @@ async def background_monitoring():
         logger.error(f"Background monitoring task failed: {e}")
     finally:
         logger.info("Background monitoring task stopped")
-
-async def send_price_update_notification(change_event: PriceChangeEvent):
-    """Send price update notification to the configured channel"""
-    if not Config.DISCORD_CHANNEL_ID:
-        return
-    
-    try:
-        channel_id = Config.get_channel_id()
-        target_channel = bot.get_channel(channel_id)
-        
-        if not target_channel:
-            logger.error(f"Could not find channel with ID {channel_id} for notification")
-            return
-        
-        # Create notification embed
-        embed = discord.Embed(
-            title="🔄 Oil Price Updated!",
-            description="Automatic price update detected",
-            color=discord.Color.green()
-        )
-        
-        if change_event.event_type == 'initial':
-            embed.add_field(name="💰 New Price", value=f"${change_event.new_price:.2f}", inline=True)
-            embed.add_field(name="🔄 Cycle", value=f"{change_event.new_cycle}", inline=True)
-            embed.add_field(name="📝 Type", value="Initial Price", inline=True)
-        else:
-            embed.add_field(name="💰 Old Price", value=f"${change_event.old_price:.2f}", inline=True)
-            embed.add_field(name="💰 New Price", value=f"${change_event.new_price:.2f}", inline=True)
-            embed.add_field(name="🔄 Cycle", value=f"{change_event.new_cycle}", inline=True)
-            embed.add_field(name="📊 Change", value=f"${change_event.price_change:+.2f} ({change_event.price_change_percent:+.2f}%)", inline=True)
-        
-        await target_channel.send(embed=embed)
-        logger.info(f"Price update notification sent to channel {channel_id}")
-        
-    except Exception as e:
-        logger.error(f"Error sending price update notification: {e}")
-
-
 
 async def main():
     """Main function to run the bot"""
