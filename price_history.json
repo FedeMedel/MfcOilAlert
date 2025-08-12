@@ -1,0 +1,13 @@
+{
+  "last_updated": 1755007249.0195894,
+  "total_entries": 1,
+  "history": [
+    {
+      "timestamp": 1755007249.0195727,
+      "timestamp_str": "2025-08-12T14:00:49.019574+00:00",
+      "price": 72.59,
+      "cycle": 6547,
+      "event_type": "initial"
+    }
+  ]
+}
