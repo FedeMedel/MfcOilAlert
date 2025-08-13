@@ -1,14 +1,16 @@
 # Oil Price Alert Discord Bot
 
-A Discord bot that monitors oil prices from [play.myfly.club/oil-prices](https://play.myfly.club/oil-prices) and automatically updates a Discord channel with price changes.
+A Discord bot that monitors oil prices from [play.myfly.club/oil-prices](https://play.myfly.club/oil-prices) and automatically updates Discord channels with price changes and channel renaming.
 
 ## Features
 
-- 🔍 **Real-time monitoring** of oil prices
-- 📝 **Automatic channel renaming** with current prices
-- 📊 **Price change logging** in Discord channels
-- ⚡ **Fast response** with Discord slash commands
-- 🛡️ **Error handling** and rate limiting
+- 🔍 **Real-time JSON endpoint monitoring** with smart polling and content change detection
+- 📝 **Automatic channel renaming** with current prices and trend indicators (📈/📉)
+- 📊 **Price change notifications** with detailed Discord embeds
+- ⚡ **Efficient HTTP client** with conditional requests and retry logic
+- 🛡️ **Robust error handling** and rate limiting
+- ⏰ **UTC timestamps** on all price updates
+- 💾 **Local price history storage** with change detection
 
 ## Prerequisites
 
@@ -48,7 +50,7 @@ A Discord bot that monitors oil prices from [play.myfly.club/oil-prices](https:/
 
 ```bash
 git clone <your-repo-url>
-cd OilPriceAlert
+cd MfcOilAlert
 ```
 
 ### 5. Create Virtual Environment
@@ -84,37 +86,44 @@ pip install -r requirements.txt
    BOT_STATUS=Monitoring Oil Prices
    ```
 
-### 8. Test Connection
-
-```bash
-python test_connection.py
-```
-
-### 9. Run the Bot
+### 8. Run the Bot
 
 ```bash
 python src/bot.py
 ```
 
+## How It Works
+
+The bot automatically starts monitoring oil prices when it comes online:
+
+1. **Fetches prices** from the JSON endpoint every 2 minutes (configurable)
+2. **Detects changes** using content hashing and cycle number comparison
+3. **Renames channel** with new price and trend indicator (e.g., `oil-price💲76-28📈`)
+4. **Sends notifications** to Discord with price change details and UTC timestamp
+5. **Stores history** locally for change detection and statistics
+
 ## Testing the Bot
 
-Once the bot is running, you can test it with these commands:
-
-- `!!check` - Check bot responsiveness
+Once running, you can use:
+- `!check` - Manually check for price updates and force refresh
 
 ## Project Structure
 
 ```
 OilPriceAlert/
 ├── src/
-│   └── bot.py              # Main bot file
+│   └── bot.py              # Main Discord bot with passive monitoring
 ├── config/
 │   └── config.py           # Configuration management
-├── utils/                   # Utility functions (future)
-├── requirements.txt         # Python dependencies
-├── env.example             # Environment variables template
-├── test_connection.py      # Connection test script
-└── README.md               # This file
+├── utils/
+│   ├── __init__.py
+│   ├── http_client.py      # HTTP client with conditional requests
+│   ├── price_monitor.py    # Price monitoring and change detection
+│   └── price_parser.py     # JSON response parser
+├── requirements.txt        # Python dependencies
+├── env.example            # Environment variables template
+├── price_history.json     # Local price storage (auto-generated)
+└── README.md              # This file
 ```
 
 ## Configuration Options
@@ -123,10 +132,30 @@ OilPriceAlert/
 |----------|-------------|---------|
 | `DISCORD_TOKEN` | Your Discord bot token | Required |
 | `DISCORD_CHANNEL_ID` | Target channel ID | Required |
-| `OIL_PRICE_URL` | Oil price website URL | `https://play.myfly.club/oil-prices` |
+| `OIL_PRICE_URL` | Oil price JSON endpoint | `https://play.myfly.club/oil-prices` |
 | `POLLING_INTERVAL` | Price check interval (seconds) | `120` (2 minutes) |
 | `BOT_PREFIX` | Command prefix | `!` |
 | `BOT_STATUS` | Bot status message | `Monitoring Oil Prices` |
+
+## Architecture
+
+- **Bot (src/bot.py)**: Discord integration, passive monitoring, channel management
+- **Price Monitor (utils/price_monitor.py)**: Change detection, history storage, event management
+- **HTTP Client (utils/http_client.py)**: Efficient endpoint polling with conditional requests
+- **Price Parser (utils/price_parser.py)**: JSON response parsing and latest price extraction
+
+## Message Format
+
+All price updates use a unified format:
+```
+🔄 Oil Price Updated!
+Automatic price update detected
+💰 Old Price: $72.59
+💰 New Price: $76.28
+🔄 Cycle: 6548
+📊 Change: $+3.69 (+5.08%)
+⏰ Time: 14:30 UTC
+```
 
 ## Troubleshooting
 
@@ -145,13 +174,13 @@ OilPriceAlert/
 - Run `pip install -r requirements.txt`
 - Check Python version (3.8+ required)
 
-## Development
+## Dependencies
 
-This bot is built with:
-- **discord.py** - Discord API wrapper
-- **requests** - HTTP requests for web scraping
-- **beautifulsoup4** - HTML parsing
-- **python-dotenv** - Environment variable management
+- **discord.py==2.3.2** - Discord API wrapper
+- **requests==2.31.0** - HTTP requests with retry logic
+- **beautifulsoup4==4.12.2** - HTML parsing (if needed)
+- **python-dotenv==1.0.0** - Environment variable management
+- **html5lib==1.1** - HTML parsing library
 
 ## License
 
